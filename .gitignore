@@ -1,0 +1,26 @@
+# Local secrets and vault data
+data/.auth
+data/.key
+data/.vault.json
+data/.password-change.pending
+data/legacy-backup-*/
+
+# Python generated files
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+.env
+data/pre-restore-*/
+password-manager-native-host
+password-manager-native-host.exe
+native_host_manifest/
+build/
+dist/
+*.pmbak
+*.spec
+
+data/sync-conflicts/
+data/pre-sync-*/
+data/.sync-state.json

@@ -1,0 +1,2 @@
+# Optional: only needed to package browser_native_host.py as a native executable.
+pyinstaller>=6.0,<7.0

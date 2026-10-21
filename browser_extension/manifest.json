@@ -1,0 +1,8 @@
+{
+  "manifest_version": 3,
+  "name": "Password Manager — Encrypted Vault",
+  "version": "2.0.0",
+  "description": "Local encrypted vault management, user-triggered autofill, and optional end-to-end encrypted sync.",
+  "permissions": ["activeTab", "scripting", "nativeMessaging", "clipboardWrite", "clipboardRead"],
+  "action": {"default_popup": "popup.html", "default_title": "Password Manager"}
+}
