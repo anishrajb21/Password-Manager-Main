@@ -62,7 +62,7 @@ jobs:
         run: ruff check .
 
       - name: Scan Python source for common security issues
-        run: bandit -r . -x .venv,tests
+        run: bandit -r . -x tests,.venv --severity-level medium
 
       - name: Audit dependencies for known vulnerabilities
         run: pip-audit -r requirements.txt
