@@ -27,7 +27,12 @@ def main():
     manifest_path = outdir / f"{HOST_NAME}.json"
     manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     if os.name == "nt":
-        key = f"HKCU\\Software\\{ {'chrome':'Google\\Chrome','chromium':'Chromium','brave':'BraveSoftware\\Brave-Browser'}[args.browser]}\\NativeMessagingHosts\\{HOST_NAME}"
+        browser_registry_paths = {
+            "chrome": r"Google\Chrome",
+            "chromium": "Chromium",
+            "brave": r"BraveSoftware\Brave-Browser",
+        }
+        key = rf"HKCU\Software\{browser_registry_paths[args.browser]}\NativeMessagingHosts\{HOST_NAME}"
         subprocess.run(["reg", "add", key, "/ve", "/t", "REG_SZ", "/d", str(manifest_path), "/f"], check=True)
     else:
         if args.browser == "brave": dest = Path.home()/".config/BraveSoftware/Brave-Browser/NativeMessagingHosts"/f"{HOST_NAME}.json"

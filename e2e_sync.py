@@ -16,6 +16,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
@@ -152,8 +153,15 @@ class SupabaseSyncClient:
     logs. Use a short-lived user JWT, never a service-role key in a client.
     """
     def __init__(self, url: str, anon_key: str, access_token: str, user_id: str, vault_id: str, device_id: str, timeout: int = 15):
-        if not url.startswith("https://"):
-            raise ValueError("Sync endpoint must use HTTPS.")
+        parsed_url = urlsplit(url)
+        if (
+            parsed_url.scheme != "https"
+            or not parsed_url.hostname
+            or parsed_url.username is not None
+            or parsed_url.password is not None
+            or parsed_url.fragment
+        ):
+            raise ValueError("Sync endpoint must be a valid HTTPS URL without embedded credentials or a fragment.")
         if not all(isinstance(x, str) and x.strip() for x in (anon_key, access_token, user_id, vault_id, device_id)):
             raise ValueError("Incomplete sync configuration.")
         self.root = url.rstrip("/") + "/rest/v1"
@@ -166,13 +174,22 @@ class SupabaseSyncClient:
         return cls(*(os.environ.get(k, "") for k in ("PM_SYNC_SUPABASE_URL", "PM_SYNC_SUPABASE_ANON_KEY", "PM_SYNC_ACCESS_TOKEN", "PM_SYNC_USER_ID", "PM_SYNC_VAULT_ID", "PM_SYNC_DEVICE_ID")))
 
     def _request(self, method: str, url: str, body: dict | None = None, prefer: str | None = None):
+        parsed_url = urlsplit(url)
+        if (
+            parsed_url.scheme != "https"
+            or not parsed_url.hostname
+            or parsed_url.username is not None
+            or parsed_url.password is not None
+            or parsed_url.fragment
+        ):
+            raise ValueError("Sync request URL must be a valid HTTPS URL.")
         headers = {"apikey": self.anon_key, "Authorization": "Bearer " + self.token, "Accept": "application/json", "x-pm-device-id": self.device_id}
         if body is not None: headers["Content-Type"] = "application/json"
         if prefer: headers["Prefer"] = prefer
         data = json.dumps(body, separators=(",", ":")).encode() if body is not None else None
         req = urllib.request.Request(url, data=data, headers=headers, method=method)
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as response:
+            with urllib.request.urlopen(req, timeout=self.timeout) as response:  # nosec B310
                 raw = response.read(MAX_ENVELOPE_BYTES + 1)
                 if len(raw) > MAX_ENVELOPE_BYTES: raise SyncError("Sync response is too large.")
                 return response.status, json.loads(raw) if raw else None
