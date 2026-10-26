@@ -5,14 +5,25 @@ receives the master password or an unwrapped vault key. This module intentionall
 uses a small HTTPS/PostgREST adapter so deployments can be tested independently.
 """
 from __future__ import annotations
-import base64, hmac, json, os, secrets, time, urllib.error, urllib.parse, urllib.request
+
+import base64
+import hmac
+import json
+import os
+import secrets
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
 from pathlib import Path
-from typing import Any
+
+from cryptography.fernet import Fernet
+from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
-from cryptography.hazmat.primitives import hashes
-from cryptography.fernet import Fernet
-import auth, crypto
+
+import auth
+import crypto
 
 FORMAT = "password-manager-e2e-vault"
 VERSION = 1
@@ -83,7 +94,7 @@ def decrypt_snapshot(envelope: dict, master_password: str, expected_vault_id: st
             raise ValueError("Vault structure is invalid.")
         fernet = Fernet(key)
         for platform, users in vault["entries"].items():
-            if not isinstance(platform, str) or not isinstance(users, dict): raise ValueError("Invalid credential map.")
+            if not isinstance(platform, str) or not isinstance(users, dict): raise TypeError("Invalid credential map.")
             for username, token in users.items():
                 if not isinstance(username, str) or not username or not isinstance(token, str): raise ValueError("Invalid credential entry.")
                 # Validate all ciphertexts before any local files are changed.
@@ -104,7 +115,7 @@ def known_revision(vault_id: str) -> int | None:
     if not os.path.isfile(path): return None
     try:
         with open(path, encoding="utf-8") as f: state = json.load(f)
-        if not isinstance(state, dict): raise ValueError
+        if not isinstance(state, dict): raise TypeError
         if state.get("vault_id") != vault_id: return None
         revision = state.get("revision")
         if isinstance(revision, bool) or not isinstance(revision, int) or revision < 1: raise ValueError
@@ -231,10 +242,7 @@ class SupabaseSyncClient:
             if envelope.get("revision") != 1: raise SyncConflict("Initial sync revision must be 1; pull the remote vault before retrying.")
             params = urllib.parse.urlencode({"on_conflict": "user_id,vault_id"})
             body = {"user_id": self.user_id, "vault_id": self.vault_id, "revision": 1, "encrypted_payload": envelope, "last_device_id": self.device_id}
-            try:
-                _, result = self._request("POST", self.base + "?" + params, body, "resolution=ignore-duplicates,return=representation")
-            except SyncConflict:
-                raise
+            _, result = self._request("POST", self.base + "?" + params, body, "resolution=ignore-duplicates,return=representation")
             if result:
                 saved = result[0] if isinstance(result, list) else result
                 remember_revision(self.vault_id, saved.get("revision", 1))
@@ -302,6 +310,6 @@ def apply_remote_envelope(envelope: dict, master_password: str, vault_id: str, e
     try:
         atomic_write_json(auth.VAULT_FILE, vault); atomic_write_json(auth.AUTH_FILE, record)
         os.remove(auth.RESTORE_PENDING_FILE); crypto.set_active_key(key)
-    except Exception:
+    except Exception:  # noqa: BLE001
         raise RuntimeError("Sync snapshot application interrupted. Keep the recovery journal and restart authentication to recover safely.")
     return str(backup)

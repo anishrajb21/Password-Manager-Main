@@ -1,9 +1,22 @@
 """Regression tests for metadata, health checks, backups, session and native messaging."""
-import json, os, sys, tempfile, unittest
+import json
+import os
+import sys
+import tempfile
+import unittest
 from unittest.mock import patch
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
-import auth, auth_helpers, backup, browser_native_host, crypto, e2e_sync, manager, session_security
+import auth
+import auth_helpers
+import backup
+import browser_native_host
+import crypto
+import e2e_sync
+import manager
+import session_security
+
 
 class FeatureTests(unittest.TestCase):
     def setUp(self):
@@ -17,7 +30,7 @@ class FeatureTests(unittest.TestCase):
         for p in self.patches: p.start()
         crypto.clear_active_key()
         self.master = 'a long master password for tests 2026'
-        record, key = auth._make_auth(self.master)
+        record, _ = auth._make_auth(self.master)
         auth_helpers.atomic_write_json(self.auth_file, record); auth_helpers.atomic_write_json(self.vault_file, {'version':2,'entries':{}})
         self.assertTrue(auth.authenticate_password(self.master))
     def tearDown(self):

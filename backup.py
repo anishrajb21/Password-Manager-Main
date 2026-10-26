@@ -1,10 +1,20 @@
 """Password-protected encrypted backup and validated restore for the local vault."""
 from __future__ import annotations
-import base64, json, os, secrets, shutil, time
-from cryptography.fernet import Fernet, InvalidToken
+
+import base64
+import json
+import os
+import secrets
+import shutil
+import time
+
 from argon2.low_level import Type, hash_secret_raw
+from cryptography.fernet import Fernet, InvalidToken
+
+import auth
+import crypto
+import manager
 from auth_helpers import atomic_write_json, ensure_data_dir, secure_file
-import auth, crypto, manager
 
 BACKUP_VERSION = 1
 BACKUP_TIME_COST = 3
@@ -68,7 +78,7 @@ def _validate_with_master(record: dict, vault: dict, master_password: str) -> No
                 plain = fernet.decrypt(token.encode()).decode("utf-8")
                 try: decoded = json.loads(plain)
                 except json.JSONDecodeError: decoded = plain
-                if not isinstance(decoded, str) and (not isinstance(decoded, dict) or not isinstance(decoded.get("password"), str)): raise ValueError
+                if not isinstance(decoded, str) and (not isinstance(decoded, dict) or not isinstance(decoded.get("password"), str)): raise TypeError
     except (InvalidToken, UnicodeError, ValueError, AttributeError) as exc: raise RuntimeError("Backup vault integrity validation failed. No files were changed.") from exc
 
 

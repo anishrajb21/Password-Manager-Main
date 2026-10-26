@@ -5,9 +5,21 @@ Never prints secrets or diagnostics to stdout; stdout is reserved for framed JSO
 The host is installed with an exact extension origin in its native-host manifest.
 """
 from __future__ import annotations
-import contextlib, json, os, struct, sys, time
+
+import contextlib
+import json
+import os
+import struct
+import sys
+import time
 from urllib.parse import urlparse
-import auth, backup, crypto, e2e_sync, generator, manager
+
+import auth
+import backup
+import crypto
+import e2e_sync
+import generator
+import manager
 
 HOST_IDLE_TIMEOUT = 300
 MAX_MESSAGE = 1024 * 1024
@@ -23,7 +35,7 @@ def _read_message():
     raw = sys.stdin.buffer.read(size)
     if len(raw) != size: raise ValueError("Truncated native messaging frame")
     value = json.loads(raw.decode("utf-8"))
-    if not isinstance(value, dict): raise ValueError("Request must be a JSON object")
+    if not isinstance(value, dict): raise TypeError("Request must be a JSON object")
     return value
 
 
@@ -67,7 +79,7 @@ def handle(request):
         crypto.clear_active_key()
         try:
             with contextlib.redirect_stdout(sys.stderr): ok = auth.authenticate_password(password)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             crypto.clear_active_key(); return {"id": request_id, "ok": False, "error": f"Vault unlock failed safely: {type(exc).__name__}."}
         _last_activity = time.monotonic()
         return {"id": request_id, "ok": bool(ok), "error": None if ok else "Incorrect master password or invalid vault."}
@@ -160,7 +172,7 @@ def handle(request):
                 local_snapshot = e2e_sync.save_conflict_copy(e2e_sync.current_envelope(os.environ.get("PM_SYNC_VAULT_ID", "")), "pre-pull-local")
             rollback = e2e_sync.apply_remote_envelope(row["encrypted_payload"], master, os.environ.get("PM_SYNC_VAULT_ID", ""), row.get("revision"))
             return {"id": request_id, "ok": True, "revision": row.get("revision"), "rollback_path": rollback, "local_snapshot": local_snapshot, "message": "Remote snapshot verified and applied. Previous local files preserved where present."}
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         return {"id": request_id, "ok": False, "error": str(exc)[:500] if isinstance(exc, (ValueError, RuntimeError, OSError)) else f"Request failed safely: {type(exc).__name__}."}
     return {"id": request_id, "ok": False, "error": "Unsupported action."}
 
@@ -171,9 +183,9 @@ def main():
             request = _read_message()
             if request is None: break
             try: response = handle(request)
-            except Exception as exc: response = {"id": request.get("id"), "ok": False, "error": f"Request failed safely: {type(exc).__name__}."}
+            except Exception as exc: response = {"id": request.get("id"), "ok": False, "error": f"Request failed safely: {type(exc).__name__}."}  # noqa: BLE001
             _write_message(response)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001
             print(f"native host protocol error: {type(exc).__name__}", file=sys.stderr); break
     crypto.clear_active_key()
 

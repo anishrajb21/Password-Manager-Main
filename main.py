@@ -1,15 +1,28 @@
 """Interactive CLI for the local password manager."""
-import os
 import builtins
+import os
 from getpass import getpass
-from auth import verify_password, change_master_password
-from crypto import clear_active_key
-from generator import generate_password, MIN_LENGTH, MAX_LENGTH
-from manager import (save_password, list_all, list_platform, update_password, delete_user, delete_platform,
-                     decrypt_all, decrypt_platform, decrypt_single, search_records, password_health_report,
-                     update_metadata, _decrypt)
-from session_security import SessionTimer, copy_secret
+
+from auth import change_master_password, verify_password
 from backup import create_backup, restore_backup
+from crypto import clear_active_key
+from generator import MAX_LENGTH, MIN_LENGTH, generate_password
+from manager import (
+    _decrypt,
+    decrypt_all,
+    decrypt_platform,
+    decrypt_single,
+    delete_platform,
+    delete_user,
+    list_all,
+    list_platform,
+    password_health_report,
+    save_password,
+    search_records,
+    update_metadata,
+    update_password,
+)
+from session_security import SessionTimer, copy_secret
 
 SESSION_TIMEOUT_SECONDS = 300
 

@@ -1,8 +1,18 @@
 """Offline tests for E2E envelope crypto and safe remote snapshot application."""
-import json, os, sys, tempfile, unittest
+import json
+import os
+import sys
+import tempfile
+import unittest
 from unittest.mock import patch
+
 ROOT=os.path.dirname(os.path.dirname(os.path.abspath(__file__))); sys.path.insert(0, ROOT)
-import auth, auth_helpers, crypto, e2e_sync, manager
+import auth
+import auth_helpers
+import crypto
+import e2e_sync
+import manager
+
 
 class E2ESyncTests(unittest.TestCase):
     def setUp(self):
@@ -72,7 +82,7 @@ class E2ESyncTests(unittest.TestCase):
         new_password='a different strong master password for sync'
         auth.change_master_password_values(self.password,new_password)
         new_envelope=e2e_sync.current_envelope('vault-test-001',revision=2)
-        record,vault,key=e2e_sync.decrypt_snapshot(new_envelope,new_password,'vault-test-001',expected_revision=2)
+        _,vault,_=e2e_sync.decrypt_snapshot(new_envelope,new_password,'vault-test-001',expected_revision=2)
         self.assertEqual(vault['version'],2)
         with self.assertRaises(ValueError): e2e_sync.decrypt_snapshot(old_envelope,new_password,'vault-test-001')
         self.assertEqual(manager._decrypt('Rotation','alice'),'keep-credential')

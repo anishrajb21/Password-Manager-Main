@@ -1,7 +1,14 @@
 """Register the packaged native messaging host after building it with PyInstaller."""
 from __future__ import annotations
-import argparse, json, os, re, shutil, subprocess
+
+import argparse
+import json
+import os
+import re
+import shutil
+import subprocess
 from pathlib import Path
+
 HOST_NAME = "com.local_password_manager.autofill"
 ROOT = Path(__file__).resolve().parent
 

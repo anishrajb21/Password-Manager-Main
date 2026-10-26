@@ -6,14 +6,19 @@ import hashlib
 import hmac
 import json
 import os
-import sys
 import secrets
 import shutil
+import sys
 import time
 from typing import Any
 
 from cryptography.fernet import InvalidToken
-from auth_helpers import atomic_write_bytes, atomic_write_json, ensure_data_dir, secure_file
+
+from auth_helpers import (
+    atomic_write_json,
+    ensure_data_dir,
+    secure_file,
+)
 from crypto import (
     DATA_DIR,
     KEY_FILE,
@@ -110,13 +115,13 @@ def _read_legacy_entries() -> dict[str, dict[str, str]]:
     except (OSError, json.JSONDecodeError) as exc:
         raise RuntimeError("Legacy vault is unreadable. No migration was performed.") from exc
     if not isinstance(old, dict):
-        raise RuntimeError("Legacy vault structure is invalid. No migration was performed.")
+        raise TypeError("Legacy vault structure is invalid. No migration was performed.")
     # Already migrated format.
     if old.get("version") == 2 and isinstance(old.get("entries"), dict):
         return old["entries"]
     for platform, users in old.items():
         if not isinstance(platform, str) or not isinstance(users, dict):
-            raise RuntimeError("Legacy vault structure is invalid. No migration was performed.")
+            raise TypeError("Legacy vault structure is invalid. No migration was performed.")
         if any(not isinstance(user, str) or not isinstance(token, str) for user, token in users.items()):
             raise RuntimeError("Legacy vault structure is invalid. No migration was performed.")
     return old
@@ -479,7 +484,6 @@ def change_master_password() -> None:
 
 
 def _decrypt_entries_with_key(entries: dict[str, dict[str, str]], password: str) -> dict[str, dict[str, str]]:
-    import base64
     from cryptography.fernet import Fernet, InvalidToken
 
     record = _read_auth()

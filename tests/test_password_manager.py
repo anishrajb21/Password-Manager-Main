@@ -9,12 +9,13 @@ from unittest.mock import patch
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
+from cryptography.fernet import Fernet
+
 import auth
 import auth_helpers
 import crypto
 import generator
 import manager
-from cryptography.fernet import Fernet
 
 
 class PasswordManagerTests(unittest.TestCase):
@@ -71,8 +72,12 @@ class PasswordManagerTests(unittest.TestCase):
         self.assertTrue(set(value) <= allowed)
 
     def test_password_generator_rejects_unsafe_lengths_and_types(self):
-        for value in (0, 4, 11, 129, True, "16"):
+        for value in (0, 4, 11, 129):
             with self.subTest(value=value), self.assertRaises(ValueError):
+                generator.generate_password(value)
+
+        for value in (True, "16"):
+            with self.subTest(value=value), self.assertRaises(TypeError):
                 generator.generate_password(value)
 
     def test_v2_authentication_and_vault_crud(self):
@@ -155,9 +160,17 @@ class PasswordManagerTests(unittest.TestCase):
     def test_first_time_setup_refuses_orphaned_vault_data(self):
         with open(self.vault_file, "w", encoding="utf-8") as f:
             json.dump({"Example": {"alice": "encrypted-token"}}, f)
-        with patch.object(auth.getpass, "getpass", side_effect=AssertionError("must not prompt")):
-            with self.assertRaisesRegex(RuntimeError, "Existing vault/key/recovery data"):
-                auth.setup_password()
+        with (
+            patch.object(
+                auth.getpass,
+                "getpass",
+                side_effect=AssertionError("must not prompt"),
+            ),
+            self.assertRaisesRegex(
+                RuntimeError, "Existing vault/key/recovery data"
+            ),
+        ):
+            auth.setup_password()
         self.assertFalse(os.path.exists(self.auth_file))
         with open(self.vault_file, encoding="utf-8") as f:
             self.assertEqual(json.load(f), {"Example": {"alice": "encrypted-token"}})

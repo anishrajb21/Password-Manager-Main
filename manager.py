@@ -1,8 +1,14 @@
 """Encrypted vault CRUD, metadata, search, and local password-health analysis."""
 from __future__ import annotations
-import json, os, re, sys
+
+import json
+import os
+import re
+import sys
 from urllib.parse import urlparse
+
 from cryptography.fernet import InvalidToken
+
 from auth_helpers import atomic_write_json, ensure_data_dir
 from crypto import get_fernet
 
@@ -64,7 +70,7 @@ def load_data() -> dict[str, dict[str, str]]:
 
 def save_data(data: dict[str, dict[str, str]]) -> None:
     ensure_data_dir()
-    if not isinstance(data, dict): raise ValueError("Vault data must be a dictionary.")
+    if not isinstance(data, dict): raise TypeError("Vault data must be a dictionary.")
     for platform, users in data.items():
         if not isinstance(platform, str) or not platform.strip() or not isinstance(users, dict): raise ValueError("Vault entries have an invalid structure.")
         if any(not isinstance(u, str) or not u.strip() or not isinstance(t, str) or not t for u,t in users.items()): raise ValueError("Vault entries have an invalid structure.")
@@ -79,7 +85,7 @@ def save_password(platform: str, username: str, password: str, *, category: str 
     if not isinstance(tags, list) or any(not isinstance(t, str) or not t.strip() or len(t) > 64 for t in tags): raise ValueError("Tags must be non-empty strings of at most 64 characters.")
     if not isinstance(url, str) or len(url) > 2048: raise ValueError("URL is invalid or too long.")
     if url and (urlparse(url).scheme not in {"https", "http"} or not urlparse(url).hostname or urlparse(url).username or urlparse(url).password): raise ValueError("URL must be a valid http:// or https:// URL without embedded credentials.")
-    data = load_data(); data.setdefault(platform, {})[username] = _encrypt_record({"password": password, "category": category, "tags": sorted(set(t.strip() for t in tags)), "url": url.strip()})
+    data = load_data(); data.setdefault(platform, {})[username] = _encrypt_record({"password": password, "category": category, "tags": sorted({t.strip() for t in tags}), "url": url.strip()})
     save_data(data)
 
 
@@ -160,7 +166,7 @@ def update_metadata(platform: str, username: str, *, category: str | None = None
     if category is not None: rec["category"] = _validate_name(category, "Category")
     if tags is not None:
         if not isinstance(tags, list) or any(not isinstance(t, str) or not t.strip() for t in tags): raise ValueError("Tags must be non-empty strings.")
-        rec["tags"] = sorted(set(t.strip() for t in tags))
+        rec["tags"] = sorted({t.strip() for t in tags})
     if url is not None:
         if url and (urlparse(url).scheme not in {"https", "http"} or not urlparse(url).hostname or urlparse(url).username or urlparse(url).password): raise ValueError("URL must be a valid http:// or https:// URL without embedded credentials.")
         rec["url"] = url
